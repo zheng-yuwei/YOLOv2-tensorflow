@@ -16,6 +16,10 @@ By 郑煜伟
 
 ## 如何使用
 
+取coco数据集中的20张图片做训练，测试效果如下，更多结果可查看`dataset/test_result*`。
+
+![测试结果](https://github.com/zheng-yuwei/YOLOv2-tensorflow/blob/master/dataset/test_result/000004.jpg)
+
 ### 快速上手
 1. 制作数据集`label.txt`，一行为`image_path x0 y0 w0 h0 cls0 x1 y1 x1 h1 cls1 ...`，
 其中`xywh`为待检测目标的bounding box中心点坐标和宽高相对于原图的比例（归一化了），`cls`为类别；
