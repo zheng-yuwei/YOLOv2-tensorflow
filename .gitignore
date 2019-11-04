@@ -1,0 +1,5 @@
+.idea/
+**/*.py[cod]
+logs/
+models/
+__pycache__/
