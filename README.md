@@ -18,7 +18,7 @@ By 郑煜伟
 
 取coco数据集中的20张图片做训练，测试效果如下，更多结果可查看`dataset/test_result*`。
 
-![测试结果](https://github.com/zheng-yuwei/YOLOv2-tensorflow/blob/master/dataset/test_result/000004.jpg)
+![测试结果](./dataset/test_result/000004.jpg)
 
 ### 快速上手
 1. 制作数据集`label.txt`，一行为`image_path x0 y0 w0 h0 cls0 x1 y1 x1 h1 cls1 ...`，
@@ -83,8 +83,8 @@ image_path x0 y0 w0 h0 cls0 ...
 []()
 
 ## TODO
-1. 多尺度输入；
-1. 加focal loss，GHM损失函数；
-1. Uncertain coordinator loss；
+1. 输入数据处理: mixup，多尺度输入；
+1. 损失函数：加focal loss，GHM损失函数；
+1. Head修改：Guassian YOLO；
 1. 模型测试，计算mAP；
 
