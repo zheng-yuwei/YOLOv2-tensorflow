@@ -53,7 +53,7 @@ class BoundingBox(object):
         :param name: 散点图名称
         :return:
         """
-        col = ['b', 'r', 'g', 'c', 'y', 'm', 'k']
+        col = ['black', 'silver', 'red', 'peru', 'yellow', 'green', 'cyan', 'blue', 'fuchsia', 'pink']
         # 中心点和boxes的 width 和 height 解析
         center_w, center_h = map(np.array, zip(*[(box.w, box.h) for box in centroids]))
         center_colors = col[:len(centroids)]  # 'k'
@@ -84,7 +84,7 @@ class BoundingBox(object):
         """
         fig = plt.figure()
         ax = Axes3D(fig)
-        col = ['b', 'r', 'g', 'c', 'y', 'm', 'k']
+        col = ['black', 'silver', 'red', 'peru', 'yellow', 'green', 'cyan', 'blue', 'fuchsia', 'pink']
         # 中心点和boxes的 width 和 height 解析
         center_w, center_h = map(np.array, zip(*[(box.w, box.h) for box in centroids]))
         center_colors = 'k'  # col[:len(centroids)]
@@ -120,7 +120,7 @@ class BoundingBox(object):
         """
         plt.grid(ls='--')
         plt.title('{} Pareto'.format(title))
-        col = ['b', 'r', 'g', 'c', 'y', 'm', 'k']
+        col = ['black', 'silver', 'red', 'peru', 'yellow', 'green', 'cyan', 'blue', 'fuchsia', 'pink']
         for i, box in enumerate(centroids):
             pos = np.where(group == i)[0]
             x = 1 - np.sort(BoundingBox.distance(box, [boxes[j] for j in pos]))  # 因为距离是 1 - IOU
