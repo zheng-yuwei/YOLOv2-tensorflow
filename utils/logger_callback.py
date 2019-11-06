@@ -9,9 +9,8 @@ import tensorflow as tf
 
 class DetailLossProgbarLogger(keras.callbacks.ProgbarLogger):
     """ 训练过程中，每N个batch打印log到stdout的回调函数 """
-    def __init__(self, count_mode='samples', stateful_metrics=None, model=None):
+    def __init__(self, count_mode='samples', stateful_metrics=None):
         super(DetailLossProgbarLogger, self).__init__(count_mode, stateful_metrics)
-        self.model = model
     
     def on_epoch_end(self, batch, logs=None):
         logs = logs or {}

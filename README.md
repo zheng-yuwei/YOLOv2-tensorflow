@@ -80,11 +80,12 @@ image_path x0 y0 w0 h0 cls0 ...
 
 ## 算法说明
 
-[]()
+[YOLOv2](https://zheng-yuwei.github.io/2018/10/03/4_YOLOv2/)
 
 ## TODO
 1. 输入数据处理: mixup，多尺度输入；
 1. 损失函数：加focal loss，GHM损失函数；
+1. 损失函数：GIOU，TIOU；
 1. Head修改：Guassian YOLO；
 1. 模型测试，计算mAP；
 
