@@ -186,7 +186,6 @@ class YOLOV2Loss(object):
             class_loss = tf.constant(0.0, dtype=tf.float32)
             
         loss = tf.stack([coord_loss_xy, coord_loss_wh, noobj_iou_loss, obj_iou_loss, class_loss], axis=-1)
-        # loss = coord_loss_xy + coord_loss_wh + noobj_iou_loss + obj_iou_loss + class_loss
         return loss
     
     @staticmethod

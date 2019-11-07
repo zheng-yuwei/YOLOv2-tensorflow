@@ -8,27 +8,32 @@ import numpy as np
 from easydict import EasyDict
 from yolov2.yolov2_detector import YOLOV2Detector
 
-
-def lr_func(epoch):
-    # step_epoch = [10, 20, 30, 40, 50, 60, 70, 80]
-    # step_lr = [0.0000001, 0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0] # 0.0001
-    step_epoch = [20, 60, 80, 220, 260, 280, 300]
-    step_lr = [0.00001, 0.001, 0.0001, 0.001, 0.0001, 0.00001, 0.000001]
-    i = 0
-    while i < len(step_epoch) and epoch > step_epoch[i]:
-        i += 1
-    return step_lr[i]
-
-
 FLAGS = EasyDict()
 
+# check_*是在项目前期定学习率时用于测试的，后续调整train_*学习率就行
+FLAGS.check_step_epoch = np.array([2, 4, 6, 8, 10, 12, 14], np.int)
+FLAGS.check_step_lr = np.array([0.00001, 0.0001, 0.001, 0.01, 0.1, 1., 10.0], dtype=np.float) * 1e-3
+FLAGS.train_step_epoch = np.array([20, 60, 80, 220, 260, 280, 300], np.int)
+FLAGS.train_step_lr = np.array([0.01, 1., 0.1, 1., 0.1, 0.01, 0.001], dtype=np.float) * 1e-3
+# 训练时期或是调整学习率时期
+FLAGS.step_epoch = FLAGS.train_step_epoch
+FLAGS.step_lr = FLAGS.train_step_lr
+
+
+def lr_func(epoch):
+    i = 0
+    while i < len(FLAGS.step_epoch) and epoch > FLAGS.step_epoch[i]:
+        i += 1
+    return FLAGS.step_lr[i]
+
+
 # 数据集
-FLAGS.train_set_dir = 'dataset/test_sample/images'  # '/cache/zhengyuwei/new_plate_images'
-FLAGS.train_label_path = 'dataset/test_sample/label.txt'  # '/cache/zhengyuwei/new_plate_images/train.txt'
-FLAGS.test_set_dir = 'dataset/test_sample/images'  # '/cache/zhengyuwei/new_plate_images'
-FLAGS.test_label_path = 'dataset/test_sample/label.txt'  # '/cache/zhengyuwei/new_plate_images/val.txt'
+FLAGS.train_set_dir = 'dataset/test_sample/images'
+FLAGS.train_label_path = 'dataset/test_sample/label.txt'
+FLAGS.test_set_dir = 'dataset/test_sample/images'
+FLAGS.test_label_path = 'dataset/test_sample/label.txt'
 # 模型权重的L2正则化权重直接写在对应模型的骨干网络定义文件中
-FLAGS.input_image_size = np.array([384, 480, 3], dtype=np.int)  # [(]H, W, C]
+FLAGS.input_image_size = np.array([384, 480, 3], dtype=np.int)  # [H, W, C]
 FLAGS.anchor_boxes = [(0.1006, 0.1073), (0.453, 0.5203), (0.3096, 0.1985), (0.1527, 0.3528), (0.7907, 0.7889)]  # [W, H]
 FLAGS.class_num = 0
 FLAGS.box_num = len(FLAGS.anchor_boxes)
@@ -39,10 +44,10 @@ FLAGS.output_head_name = 'yolov2_head'
 FLAGS.iou_thresh = 0.7  # 大于该IOU阈值，不计算该anchor的背景IOU误差
 FLAGS.loss_weights = [50, 100, 0.05, 10, 10]  # 不同损失项的权：[coord_xy, coord_wh, noobj, obj, cls_prob]
 # 训练参数
-FLAGS.train_set_size = 14  # 160108
-FLAGS.val_set_size = 14  # 35935
-FLAGS.batch_size = 5  # 3079
-# 但你已经有预训练模型时，给rectified_coord_num赋值为0即可
+FLAGS.train_set_size = 14
+FLAGS.val_set_size = 14
+FLAGS.batch_size = 5
+# 若你已经有预训练模型，给rectified_coord_num赋值为-1即可
 FLAGS.rectified_coord_num = 915  # 前期给坐标做矫正损失的图片数，源代码 12800，train-from-scratch需要用
 FLAGS.rectified_loss_weight = 1.0  # 前期矫正坐标的损失的权重，源代码 0.01，具体可调，太大的话coord_loss_wh会跟着爆炸
 FLAGS.epoch = 300
