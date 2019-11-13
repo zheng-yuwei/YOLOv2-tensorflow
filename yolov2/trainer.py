@@ -10,11 +10,11 @@ from tensorflow import saved_model
 from tensorflow import keras
 
 from configs import FLAGS
-from yolov2.yolov2_detector import YOLOV2Detector
-from yolov2.yolov2_loss import YOLOV2Loss
+from yolov2.yolov2_detector import YOLOv2Detector
+from yolov2.yolov2_loss import YOLOv2Loss
 
 
-class YOLOV2Trainer(object):
+class YOLOv2Trainer(object):
     """
     训练分类器：
     1. 初始化分类器模型、训练参数等；
@@ -30,12 +30,12 @@ class YOLOV2Trainer(object):
         # 构建模型网络
         self.backbone = FLAGS.model_backbone  # 网络类型
         self.input_image_size = FLAGS.input_image_size
-        self.output_channel_num = FLAGS.output_channel_num
+        self.head_channel_num = FLAGS.head_channel_num
 
-        model = YOLOV2Detector.build(self.backbone, self.input_image_size,
-                                     self.output_channel_num, FLAGS.output_head_name)
+        model = YOLOv2Detector.build(self.backbone, self.input_image_size,
+                                     self.head_channel_num, FLAGS.head_name)
         # 训练模型: cpu，gpu 或 多gpu
-        if FLAGS.gpu_mode == YOLOV2Trainer.GPU_MODE and FLAGS.gpu_num > 1:
+        if FLAGS.gpu_mode == YOLOv2Trainer.GPU_MODE and FLAGS.gpu_num > 1:
             self.model = keras.utils.multi_gpu_model(model, gpus=FLAGS.gpu_num)
         else:
             self.model = model
@@ -71,10 +71,14 @@ class YOLOV2Trainer(object):
         elif FLAGS.optimizer == 'radam':
             from utils.radam import RAdam
             optimizer = RAdam(lr=1e-3)
-        self.loss_function = YOLOV2Loss(FLAGS.output_grid_size, FLAGS.class_num,
+        self.loss_function = YOLOv2Loss(FLAGS.head_grid_size, FLAGS.class_num,
                                         FLAGS.anchor_boxes, FLAGS.iou_thresh, FLAGS.loss_weights,
                                         rectified_coord_num=FLAGS.rectified_coord_num,
-                                        rectified_loss_weight=FLAGS.rectified_loss_weight).loss
+                                        rectified_loss_weight=FLAGS.rectified_loss_weight,
+                                        is_focal_loss=FLAGS.is_focal_loss,
+                                        focal_alpha=FLAGS.focal_alpha,
+                                        focal_gamma=FLAGS.focal_gamma,
+                                        is_tiou_recall=FLAGS.is_tiou_recall).loss
         self.model.compile(optimizer=optimizer, loss=self.loss_function)
         # 设置模型训练参数
         self.epoch = FLAGS.epoch

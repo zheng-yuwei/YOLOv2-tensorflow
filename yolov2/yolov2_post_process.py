@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on 2019/10/31
 File yolov2_post_process.py
 @author:ZhengYuwei
 """

@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 
-class YOLOV2Decoder(object):
+class YOLOv2Decoder(object):
     """ YOLO v2 解码 """
     
     def __init__(self, grid_size, class_num, anchor_boxes):

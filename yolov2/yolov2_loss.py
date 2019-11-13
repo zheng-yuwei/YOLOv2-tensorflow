@@ -5,17 +5,19 @@ File yolov2_loss.py
 """
 import tensorflow as tf
 from tensorflow import keras
-from yolov2.yolov2_decoder import YOLOV2Decoder
+from yolov2.yolov2_decoder import YOLOv2Decoder
 
 
-class YOLOV2Loss(object):
+class YOLOv2Loss(object):
     """ YOLOv2损失函数 """
     
-    def __init__(self, output_grid_size, class_num, anchor_boxes, iou_thresh, loss_weights,
-                 rectified_coord_num=0, rectified_loss_weight=0.01):
+    def __init__(self, head_grid_size, class_num, anchor_boxes, iou_thresh, loss_weights,
+                 rectified_coord_num=0, rectified_loss_weight=0.01,
+                 is_focal_loss=False, focal_alpha=0.25, focal_gamma=2.0,
+                 is_tiou_recall=False):
         """
         YOLO v2 损失函数参数的初始化
-        :param output_grid_size: YOLO v2输出尺度
+        :param head_grid_size: YOLO v2输出尺度
         :param class_num: 类别数
         :param anchor_boxes: YOLO v2的预定义anchors
         :param iou_thresh: 任一grid、anchor预测的bounding box与所有实际目标的IOU，小于该阈值且不为最大IOU则为background，
@@ -23,8 +25,12 @@ class YOLOV2Loss(object):
         :param loss_weights: 不同损失项的权重，[coord_loss_weight, noobj_loss_weight]
         :param rectified_coord_num: 前期给坐标做矫正损失的图片数
         :param rectified_loss_weight: 前期矫正坐标的损失的权重
+        :param is_focal_loss: 是否针对前/背景IOU损失函数使用focal loss
+        :param focal_alpha: the same as wighting factor in balanced cross entropy, default 0.25
+        :param focal_gamma: focusing parameter for modulating factor (1-p), default 2.0
+        :param is_tiou_recall: 是否使用TIOU-recall替换一般的IOU计算
         """
-        self.height, self.width = output_grid_size
+        self.height, self.width = head_grid_size
         self.output_wh = tf.constant([self.width, self.height], dtype=tf.float32)
         self.class_num = class_num
         self.iou_thresh = iou_thresh
@@ -40,8 +46,13 @@ class YOLOV2Loss(object):
         self.coord_num = 4
         self.conf_num = 1
         self.box_len = self.coord_num + self.conf_num + self.class_num
+        # 损失函数变种选项
+        self.is_focal_loss = is_focal_loss
+        self.focal_alpha = focal_alpha
+        self.focal_gamma = focal_gamma
+        self.is_tiou_recall = is_tiou_recall
         # output decoder
-        self.decoder = YOLOV2Decoder(output_grid_size, class_num, anchor_boxes)
+        self.decoder = YOLOv2Decoder(head_grid_size, class_num, anchor_boxes)
         # 前期训练 rectified loss
         self.rectified_coord_num = rectified_coord_num  # 预定义的坐标校正图片数
         self.rectified_loss_weight = rectified_loss_weight
@@ -165,12 +176,16 @@ class YOLOV2Loss(object):
         # 我们如果用CE，那么损失权重是不是应该更小？才能平衡该项loss与其他loss的影响
         # noobj_iou_loss = tf.square(predict[:, :, :, 4])  # L2损失函数
         noobj_iou_loss = - tf.log(1 - predict[:, :, :, 4])  # CE损失函数
+        if self.is_focal_loss:
+            noobj_iou_loss = noobj_iou_loss * tf.pow(predict[:, :, :, 4], self.focal_gamma)
         noobj_iou_loss = self.noobj_weight * tf.reduce_sum(noobj_iou_loss * background_mask)
         # 取每个待检测物体的response预测
         response_pred = tf.gather_nd(predict, target_grid_xyz)
         # obj_iou_loss(score)，可以以IOU=1为ground truth，也可使用真实IOU(response_max_iou)为gt
         # obj_iou_loss = tf.square(1 - response_pred[:, 4])  # L2损失函数
         obj_iou_loss = - tf.log(response_pred[:, 4])  # CE损失函数
+        if self.is_focal_loss:
+            obj_iou_loss = obj_iou_loss * (tf.pow(1 - response_pred[:, 4], self.focal_gamma) * self.focal_alpha)
         obj_iou_loss = self.obj_weight * tf.reduce_sum(obj_iou_loss, name='obj_iou_loss')  # CE损失函数
         # loss(xy) + loss(wh)
         coord_loss_xy = self.coord_xy_weight * tf.reduce_sum(tf.square(target[:, 0:2] - response_pred[:, 0:2]))
@@ -204,8 +219,7 @@ class YOLOV2Loss(object):
         target_boxes = tf.gather_nd(target_boxes, valid_obj_indices)
         return target, target_boxes, valid_obj_num
     
-    @staticmethod
-    def _calc_iou(target, target_boxes, predict, predict_boxes, valid_obj_num):
+    def _calc_iou(self, target, target_boxes, predict, predict_boxes, valid_obj_num):
         """
         所有grid的所有anchor的预测框，与所有真实物体框的最大IOU（后续用于确定是否是背景）
         物体中心点所在的grid的所有anchor的预测框，与对应的真实物体框的最大IOU及其位置（后续用于确定前景及loss计算）
@@ -217,15 +231,15 @@ class YOLOV2Loss(object):
         :return: 预测框与所有gt物体框的最大IOU，(H, W, B)，
                  中心点grid的anchor与gt的最大IOU (valid_num,)及其位置[[H, W, B] * valid_num],(valid_num, 3)
         """
-        # 1. 所有grid、所有anchor的预测框面积，取出真实物体中心点grid的所有anchor的预测框面积
+        # 1. 所有grid、所有anchor的预测框面积，取出真实物体中心点grid的所有anchor的预测框面积：A(D)
         predict_area = predict[:, :, :, 2] * predict[:, :, :, 3]  # (H, W, B)
         
         response_grid_xy = tf.cast(tf.floor(target[:, 0:2]), dtype=tf.int32)
         response_grid_xy = tf.reverse(response_grid_xy, axis=[-1])  # 由坐标获取下标：[center_x, center_y]=>(H, W)
         response_area = tf.gather_nd(predict_area, response_grid_xy)  # 获得response grid的预测输出， (valid_num, B)
-        # 2. 真实框面积
+        # 2. 真实框面积: A(G)
         target_area = target[:, 2] * target[:, 3]  # (valid_num,)
-        # 3. 所有grid的所有anchor的预测框与真实框相交的面积，中心点grid的所有anchor预测框与对应gt框的相交面积
+        # 3. 所有grid的所有anchor的预测框与真实框相交的面积，中心点grid的所有anchor预测框与对应gt框的相交面积: A(G and D)
         tile_predict_boxes = tf.tile(tf.expand_dims(predict_boxes, axis=-2), [1, 1, 1, valid_obj_num, 1])
         left_top = tf.maximum(tile_predict_boxes[:, :, :, :, 0:2], target_boxes[:, 0:2])
         right_bottom = tf.minimum(tile_predict_boxes[:, :, :, :, 2:4], target_boxes[:, 2:4])
@@ -239,12 +253,17 @@ class YOLOV2Loss(object):
         response_inter_wh = response_right_bottom - response_left_top
         response_inter_area = response_inter_wh[:, :, 0] * response_inter_wh[:, :, 1]  # (valid_num, B)
         # 4. 计算IOU
-        # 所有grid的所有anchor与所有gt的IOU，gt中最大的IOU作为该anchor的IOU
+        # 所有grid的所有anchor与所有gt的IOU，gt中最大的IOU作为该anchor的IOU: A(G and D) / [A(D) + A(G) - A(G and D)]
         predict_area = tf.tile(tf.expand_dims(predict_area, axis=-1), [1, 1, 1, valid_obj_num])
         iou = inter_area / (predict_area + target_area - inter_area)
+        if self.is_tiou_recall:
+            # A(G and D) / [A(D) + A(G) - A(G and D)] * A(G and D) / A(G)
+            iou = iou * inter_area / target_area
         max_iou = tf.reduce_max(iou, axis=-1, keepdims=False)  # (H, W, B)
         # 中心点grid所有anchor与对应的实际物体的最大IOU (valid_num,)，及其坐标[[H, W, B] * valid_num]
         response_iou = response_inter_area / (response_area + tf.expand_dims(target_area, axis=-1) - response_inter_area)
+        if self.is_tiou_recall:
+            response_iou = response_iou * response_inter_area / tf.expand_dims(target_area, axis=-1)
         response_max_iou = tf.reduce_max(response_iou, axis=-1, keepdims=False)
         max_arg = tf.arg_max(response_iou, dimension=-1, output_type=tf.int32)
         response_grid_xyz = tf.concat([response_grid_xy, tf.expand_dims(max_arg, axis=-1)], axis=-1)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-File logger
+File logger.py
 @author:ZhengYuwei
 """
 import logging

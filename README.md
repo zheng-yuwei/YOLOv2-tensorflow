@@ -42,7 +42,9 @@ By 郑煜伟
 ## 目录结构
 
 - `A_learning_notes`: README后，**先查看本部分**了解本项目大致结构；
-- `backbone`: 模型的骨干网络脚本；
+- `backbone`: 模型的骨干网络脚本，`basic_backbone.py`包含了基类`BasicBackbone`，
+实现了5个类型的骨干网络：`resnet-18`, `resnet-18-v2`, `mobilenet-v2`, `mixnet-18`, `resnext-18`；
+其中，前三个网络基本遵照原始网络结构，后两个是借鉴了对应网络的思想，在`resnet-18`基础上改写；
 - `dataset`: 数据集构造脚本；
     - `dataset_util.py`: 使用tf.image API进行图像数据增强，然后用tf.data进行数据集构建；
     - `file_util.py`: 以txt标签文件的形式，构造tf.data数据集用于训练；
@@ -58,7 +60,7 @@ By 郑煜伟
 - `yolov2`: yolov2模型构建脚本；
     - `train.py`: 模型训练接口，集成模型构建/编译/训练/debug/预测、数据集构建等功能；
     - `yolov2_decoder.py`: 对YOLO v2模型的预测输出进行解码；
-    - `yolov2_detector.py`: 构造YOLO v2检测器模型；
+    - `yolov2_trainer.py`: 构造YOLO v2检测器模型；
     - `yolov2_loss.py`: YOLO v2的损失函数；
 - `configs.py`: 配置文件；
 - `run.py`: 启动脚本；
@@ -83,9 +85,11 @@ image_path x0 y0 w0 h0 cls0 ...
 [YOLOv2](https://zheng-yuwei.github.io/2018/10/03/4_YOLOv2/)
 
 ## TODO
-1. 输入数据处理: mixup，多尺度输入；
-1. 损失函数：加focal loss，GHM损失函数；
-1. 损失函数：GIOU，TIOU；
-1. Head修改：Guassian YOLO；
-1. 模型测试，计算mAP；
-
+- [] 多尺度输入;
+- [] mixup;
+- [x] focal loss;
+- [] GHM损失函数;
+- [] GIOU;
+- [x] TIOU-Recall;
+- [] Guassian YOLO;
+- [] 模型测试，计算mAP；

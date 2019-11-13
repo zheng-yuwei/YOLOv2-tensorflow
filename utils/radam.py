@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on 2019/8/15
-File radam
+File radam.py
 @author: ZhengYuwei
 """
 import tensorflow as tf

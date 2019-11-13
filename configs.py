@@ -6,7 +6,7 @@ File configs.py
 import datetime
 import numpy as np
 from easydict import EasyDict
-from yolov2.yolov2_detector import YOLOV2Detector
+from yolov2.yolov2_detector import YOLOv2Detector
 
 FLAGS = EasyDict()
 
@@ -38,9 +38,9 @@ FLAGS.anchor_boxes = [(0.1006, 0.1073), (0.453, 0.5203), (0.3096, 0.1985), (0.15
 FLAGS.class_num = 0
 FLAGS.box_num = len(FLAGS.anchor_boxes)
 FLAGS.box_len = 4 + 1 + FLAGS.class_num
-FLAGS.output_channel_num = FLAGS.box_num * FLAGS.box_len
-FLAGS.output_grid_size = np.divide(FLAGS.input_image_size[0:2], 32).astype(np.int)  # [H, W]
-FLAGS.output_head_name = 'yolov2_head'
+FLAGS.head_channel_num = FLAGS.box_num * FLAGS.box_len
+FLAGS.head_grid_size = np.divide(FLAGS.input_image_size[0:2], 32).astype(np.int)  # [H, W]
+FLAGS.head_name = 'yolov2_head'
 FLAGS.iou_thresh = 0.7  # 大于该IOU阈值，不计算该anchor的背景IOU误差
 FLAGS.loss_weights = [50, 100, 0.05, 10, 10]  # 不同损失项的权：[coord_xy, coord_wh, noobj, obj, cls_prob]
 # 训练参数
@@ -54,12 +54,15 @@ FLAGS.epoch = 300
 FLAGS.init_lr = 0.0002  # nadam推荐使用值
 # 训练参数
 FLAGS.mode = 'train'  # train, test, predict, save_pb, save_serving
-FLAGS.model_backbone = YOLOV2Detector.BACKBONE_RESNET_18
+FLAGS.model_backbone = YOLOv2Detector.BACKBONE_RESNET_18
 FLAGS.optimizer = 'radam'  # sgdm, adam, radam
 FLAGS.is_augment = True
 FLAGS.is_label_smoothing = False
 FLAGS.is_focal_loss = False
+FLAGS.focal_alpha = 0.25
+FLAGS.focal_gamma = 2.0
 FLAGS.is_gradient_harmonized = False
+FLAGS.is_tiou_recall = False
 FLAGS.type = FLAGS.model_backbone + '-' + FLAGS.optimizer
 FLAGS.type += ('-aug' if FLAGS.is_augment else '')
 FLAGS.type += ('-smooth' if FLAGS.is_label_smoothing else '')
