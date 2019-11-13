@@ -84,6 +84,29 @@ image_path x0 y0 w0 h0 cls0 ...
 
 [YOLOv2](https://zheng-yuwei.github.io/2018/10/03/4_YOLOv2/)
 
+## MixNet的理解
+
+MixNet是Google在**轻量级网络结构**上探索的又一成果。
+
+2019-05 Google将NAS用到了轻量级网络结构的搜索上，得到MnasNet，也就是MobileNet v3
+（[Searching for MobileNetV3](https://arxiv.org/abs/1905.02244?context=cs))。
+论文中的启示可能有：
+1. 沿用了MobileNet v2的基本结构块：x6通道数的1x1卷积，步长为2的3x3 depthwise卷积，/2通道数的1x1线性卷积；
+1. 基于squeeze and excitation结构的轻量级注意力模型；
+1. 使用 h-swish激活函数（hard swish）：(x * ReLU6(x+3)) / 6；
+1. 手工微调网络开端和结尾这两个开销比较大的部分。
+
+2019-07 针对kernel size的影响进行了系统性研究，观察 multiple kernel sizes 的融合可以带来精度和效率上的提升，
+也就是 mixed depthwise convolution (MixConv,
+论文 [MixConv: Mixed Depthwise Convolutional Kernels](https://arxiv.org/abs/1907.09595))。
+然后将其集成到AutoML的搜索空间中，最终得到MixNets轻量网络结构体系（论文结果优于MobileNet v3）。
+启示可能包括（沿用MobileNet v2/v3的基础模块结构）：
+1. 加上了分组卷积的思维：在前后两个1x1卷积中进行了分组操作；
+1. 将中间的3x3卷积模块替换为MixConv：有`[16, 8, 4, 4]`比例的4组`[3, 5, 7, 9]`卷积核尺寸；
+1. 若卷积核太大，计算量不太可承受，可考虑使用dilated convolution。
+
+我在`backbone`中实现的MixNet并不是论文中的网络结构，而是使用了MixConv不同卷积核尺寸的思想构造的网络。
+
 ## TODO
 - [] 多尺度输入;
 - [] mixup;
