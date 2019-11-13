@@ -108,11 +108,11 @@ MixNet是Google在**轻量级网络结构**上探索的又一成果。
 我在`backbone`中实现的MixNet并不是论文中的网络结构，而是使用了MixConv不同卷积核尺寸的思想构造的网络。
 
 ## TODO
-- [] 多尺度输入;
-- [] mixup;
+- [ ] 多尺度输入;
+- [ ] mixup;
 - [x] focal loss;
-- [] GHM损失函数;
-- [] GIOU;
+- [ ] GHM损失函数;
+- [ ] GIOU;
 - [x] TIOU-Recall;
-- [] Guassian YOLO;
-- [] 模型测试，计算mAP；
+- [ ] Guassian YOLO;
+- [ ] 模型测试，计算mAP；
