@@ -23,7 +23,7 @@ if FLAGS.mode == 'train':
 else:
     keras.backend.set_learning_phase(False)
 
-keras.backend.set_epsilon(1e-8)
+keras.backend.set_epsilon(1e-7)
 np.random.seed(6)
 tf.set_random_seed(800)
 

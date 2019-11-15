@@ -243,14 +243,14 @@ class YOLOv2Loss(object):
         tile_predict_boxes = tf.tile(tf.expand_dims(predict_boxes, axis=-2), [1, 1, 1, valid_obj_num, 1])
         left_top = tf.maximum(tile_predict_boxes[:, :, :, :, 0:2], target_boxes[:, 0:2])
         right_bottom = tf.minimum(tile_predict_boxes[:, :, :, :, 2:4], target_boxes[:, 2:4])
-        inter_wh = right_bottom - left_top
+        inter_wh = tf.maximum(right_bottom - left_top, 0)
         inter_area = inter_wh[:, :, :, :, 0] * inter_wh[:, :, :, :, 1]  # (H, W, B, valid_num)
         
         response_boxes = tf.gather_nd(predict_boxes, response_grid_xy)  # 获得response grid预测的boxes，(valid_num, B, 4)
         expand_target_boxes = tf.expand_dims(target_boxes, axis=1)
         response_left_top = tf.maximum(response_boxes[:, :, 0:2], expand_target_boxes[:, :, 0:2])
         response_right_bottom = tf.minimum(response_boxes[:, :, 2:4], expand_target_boxes[:, :, 2:4])
-        response_inter_wh = response_right_bottom - response_left_top
+        response_inter_wh = tf.maximum(response_right_bottom - response_left_top, 0)
         response_inter_area = response_inter_wh[:, :, 0] * response_inter_wh[:, :, 1]  # (valid_num, B)
         # 4. 计算IOU
         # 所有grid的所有anchor与所有gt的IOU，gt中最大的IOU作为该anchor的IOU: A(G and D) / [A(D) + A(G) - A(G and D)]
