@@ -44,12 +44,12 @@ FLAGS.head_name = 'yolov2_head'
 FLAGS.iou_thresh = 0.7  # 大于该IOU阈值，不计算该anchor的背景IOU误差
 FLAGS.loss_weights = [50, 100, 0.05, 10, 10]  # 不同损失项的权：[coord_xy, coord_wh, noobj, obj, cls_prob]
 # 训练参数
-FLAGS.train_set_size = 14
-FLAGS.val_set_size = 14
-FLAGS.batch_size = 5
+FLAGS.train_set_size = 20
+FLAGS.val_set_size = 20
+FLAGS.batch_size = 6
 # 若你已经有预训练模型，给rectified_coord_num赋值为-1即可
-FLAGS.rectified_coord_num = 915  # 前期给坐标做矫正损失的图片数，源代码 12800，train-from-scratch需要用
-FLAGS.rectified_loss_weight = 1.0  # 前期矫正坐标的损失的权重，源代码 0.01，具体可调，太大的话coord_loss_wh会跟着爆炸
+FLAGS.rectified_coord_num = 1464  # 前期给坐标做矫正损失的图片数，源代码 12800，train-from-scratch需要用
+FLAGS.rectified_loss_weight = 1.0  # 前期矫正坐标的损失的权重，源代码 0.01，太大的话coord_loss_wh会跟着爆炸
 FLAGS.epoch = 300
 FLAGS.init_lr = 0.0002  # nadam推荐使用值
 # 训练参数

@@ -21,6 +21,7 @@ By 郑煜伟
 ![测试结果](./dataset/test_result/000004.jpg)
 
 ### 快速上手
+
 1. 制作数据集`label.txt`，一行为`image_path x0 y0 w0 h0 cls0 x1 y1 x1 h1 cls1 ...`，
 其中`xywh`为待检测目标的bounding box中心点坐标和宽高相对于原图的比例（归一化了），`cls`为类别；
 1. 实际用自己的数据训练时，可能需要执行以下`utils/check_label_file.py`，确保标签文件中的图片真实可用；
@@ -33,7 +34,10 @@ By 郑煜伟
 
 ![不同聚类中心下，待检测目标与归属anchor的IOU-样本比例的ROC曲线](./images/IOU-Ratio-curve.png)
 
+以上的IOU-Ratio曲线需要从右往左看，表示随着与聚类中心IOU越小，类内label框的占比比例。
+
 ### 学习掌握
+
 1. 先看`README.md`;
 2. 再看`1_learning_note`下的note；
 3. 看`multi_label`下的`trainer.py`里的`__init__`函数，把整体模型串起来；
@@ -62,6 +66,7 @@ By 郑煜伟
     - `yolov2_decoder.py`: 对YOLO v2模型的预测输出进行解码；
     - `yolov2_trainer.py`: 构造YOLO v2检测器模型；
     - `yolov2_loss.py`: YOLO v2的损失函数；
+    - `yolov3_post_process.py`：YOLO v2后处理，预测和测试的时候用。
 - `configs.py`: 配置文件；
 - `run.py`: 启动脚本；
 
@@ -108,6 +113,7 @@ MixNet是Google在**轻量级网络结构**上探索的又一成果。
 我在`backbone`中实现的MixNet并不是论文中的网络结构，而是使用了MixConv不同卷积核尺寸的思想构造的网络。
 
 ## TODO
+
 - [ ] 多尺度输入;
 - [ ] mixup;
 - [x] focal loss;

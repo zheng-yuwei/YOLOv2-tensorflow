@@ -39,8 +39,8 @@ class YOLOv2PostProcessor(object):
         class_indices = np.take(all_class_indices, high_score_position)
         high_score = np.take(all_score, high_score_position)
         # (k, 8), [x0, y0, x1, y1, iou, 概率, 预测类别， 得分=iou*概率]
-        boxes = np.stack([left_top_x, left_top_y, right_bottom_x, right_bottom_y,
-                          confidence, class_prob, class_indices, high_score], axis=-1)[0]
+        boxes = np.transpose(np.concatenate([left_top_x, left_top_y, right_bottom_x, right_bottom_y,
+                                             confidence, class_prob, class_indices, high_score], axis=0))
         return boxes
     
     @staticmethod
@@ -125,10 +125,10 @@ class YOLOv2PostProcessor(object):
             top = max(top, 0)
             right = min(right, image_width)
             bottom = min(bottom, image_height)
-            cv2.rectangle(image, (int(left), int(top)), (int(right), int(bottom)),
-                          (255, 242, 35), max(1, int(3 * image_width / 1200)))
-            cv2.putText(image, '{:d}|{:.2f}'.format(int(box[6]), box[7]),
-                        (int(left), int(top)), cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.rectangle(image, (int(round(left)), int(round(top))), (int(round(right)), int(round(bottom))),
+                          (255, 242, 35), max(1, round(3 * image_width / 1200)))
+            cv2.putText(image, '{:.0f}|{:.2f}'.format(round(box[6]), box[7]),
+                        (int(round(left)), int(round(top))), cv2.FONT_HERSHEY_SIMPLEX,
                         max(0.3, 0.3 * image_width / 1000), (255, 0, 0))
         cv2.imwrite(image_path, image)
         return
