@@ -1,18 +1,13 @@
 # YOLOv2-tensorflow
 
-By 郑煜伟
-
 基于tf.keras，实现YOLOv2模型。
+
 ## 本项目相比其他YOLO v2项目的特色
-
-与TensorFlow版本的YOLO v2项目相比，**最大程度遵从原始论文、原始Darknet框架的实现&**
-（可以说解决了逻辑bug吧，具体可查看`1_learning_note/implementation_process.ipynb`）；
-
-与原版Darknet、Caffe实现相比，train-from-scratch的预测框校正功能可根据实际情况进行开启/关闭；
 
 与所有YOLO v2项目相比：
 1. 使用tf.data.Dataset读取数据，tf.keras构造模型，简单易懂，同时易于多GPU训练、模型转换等操作；
-2. 全中文详细代码注释，算法理解等说明。
+1. 全中文详细代码注释，算法理解等说明；
+1. 自由开启/关闭train-from-scratch的预测框校正功能。
 
 ## 如何使用
 
@@ -34,7 +29,7 @@ By 郑煜伟
 
 ![不同聚类中心下，待检测目标与归属anchor的IOU-样本比例的ROC曲线](./images/IOU-Ratio-curve.png)
 
-以上的IOU-Ratio曲线需要从右往左看，表示随着与聚类中心IOU越小，类内label框的占比比例。
+以上的IOU-Ratio曲线需要**从右往左看**，表示随着与聚类中心IOU越小，类内label框的占比比例。
 
 ### 学习掌握
 
@@ -115,6 +110,7 @@ MixNet是Google在**轻量级网络结构**上探索的又一成果。
 
 ## TODO
 
+- [x] RAdam;
 - [ ] 多尺度输入;
 - [ ] mixup;
 - [x] focal loss;
