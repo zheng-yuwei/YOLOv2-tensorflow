@@ -188,7 +188,15 @@ class YOLOv2Loss(object):
             obj_iou_loss = obj_iou_loss * (tf.pow(1 - response_pred[:, 4], self.focal_gamma) * self.focal_alpha)
         obj_iou_loss = self.obj_weight * tf.reduce_sum(obj_iou_loss, name='obj_iou_loss')  # CE损失函数
         # loss(xy) + loss(wh)
-        coord_loss_xy = self.coord_xy_weight * tf.reduce_sum(tf.square(target[:, 0:2] - response_pred[:, 0:2]))
+        # mse_xy
+        # coord_loss_xy = self.coord_xy_weight * tf.reduce_sum(tf.square(target[:, 0:2] - response_pred[:, 0:2]))
+        # log_xy
+        coord_int = tf.floor(target[:, 0:2])
+        coord_target_xy = target[:, 0:2] - coord_int
+        coord_pred_xy = response_pred[:, 0:2] - coord_int
+        coord_loss_xy = self.coord_xy_weight * tf.reduce_sum(
+            -(coord_target_xy * tf.log(coord_pred_xy) + (1 - coord_target_xy) * tf.log(1 - coord_pred_xy)))
+        # mse_wh
         coord_loss_wh = tf.reduce_sum(tf.square(tf.sqrt(target[:, 2:4]) - tf.sqrt(response_pred[:, 2:4])))
         coord_loss_wh = self.coord_wh_weight * coord_loss_wh
         # loss(class)

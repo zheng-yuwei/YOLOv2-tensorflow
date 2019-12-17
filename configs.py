@@ -42,7 +42,7 @@ FLAGS.head_channel_num = FLAGS.box_num * FLAGS.box_len
 FLAGS.head_grid_size = np.divide(FLAGS.input_image_size[0:2], 32).astype(np.int)  # [H, W]
 FLAGS.head_name = 'yolov2_head'
 FLAGS.iou_thresh = 0.7  # 大于该IOU阈值，不计算该anchor的背景IOU误差
-FLAGS.loss_weights = [50, 100, 0.05, 10, 10]  # 不同损失项的权：[coord_xy, coord_wh, noobj, obj, cls_prob]
+FLAGS.loss_weights = [5, 100, 0.05, 10, 10]  # 不同损失项的权：[coord_xy, coord_wh, noobj, obj, cls_prob]
 # 训练参数
 FLAGS.train_set_size = 20
 FLAGS.val_set_size = 20
