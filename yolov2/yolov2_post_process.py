@@ -48,7 +48,7 @@ class YOLOv2PostProcessor(object):
         """ 实施nms筛选候选框
         :param boxes: 归一化尺度的候选框列表，元素为numpy.array(8)，(x0, y0, x1, y1, iou, 概率, 预测类别, 得分)
         :param nms_thresh: NMS阈值
-        :return 筛选后的boxes
+        :return 筛选后的boxes，list类型
         """
         sorted_boxes = sorted(boxes, key=lambda d: d[7], reverse=True)
         index, box_num = 0, len(sorted_boxes) - 1
