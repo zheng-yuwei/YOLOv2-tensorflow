@@ -182,3 +182,27 @@ class YOLOv2Trainer(object):
                                                  signature_def_map={'predict': signature})
             builder.save()
         logging.info('serving模型保存成功!')
+
+    def visualize_model_bn_gamma(self, small_gamma=0.01):
+        """依靠网络中的BN层的gamma取值分布，估计模型的使用容量
+        :param small_gamma: 小gamma的水准线
+        """
+        # 收集不同bn层的gamma
+        bn_gammas = list()
+        for v in self.model.trainable_variables:
+            name = v.name
+            if name.find('batch_normalization') != -1 and name.find('gamma') != -1:
+                bn_gammas.append(v.numpy())
+
+        # 绘制箱线图和gamma基线
+        fig, ax = plt.subplots()
+        ax.set_title('Distribution of Gammas')
+        ax.boxplot(bn_gammas, flierprops=dict(markerfacecolor='g', marker='D'))
+        box_name = ['{}/{}'.format(sum(abs(gammas) < small_gamma), len(gammas)) for gammas in bn_gammas]
+        ax.set_xticklabels(box_name, rotation=30)
+        plt.plot([0, len(bn_gammas) + 1], [small_gamma, small_gamma], color='red', linewidth=1)
+        plt.plot([0, len(bn_gammas) + 1], [-small_gamma, -small_gamma], color='red', linewidth=1)
+        plt.text(0, small_gamma, str(small_gamma), ha='left', va='bottom', fontsize=8)
+        plt.xlim(0, len(bn_gammas) + 1)
+        plt.grid(axis='y')
+        plt.show()
