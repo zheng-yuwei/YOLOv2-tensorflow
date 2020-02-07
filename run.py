@@ -61,7 +61,7 @@ def test(yolov2_trainer, yolov2_decoder, save_path=None):
         for image, label, image_path, prediction, boxes in zip(images, labels, image_paths,
                                                                np.array(predictions), np.array(predict_boxes)):
             # (k, 8)， 归一化尺度->网络输入尺度的[(left top right bottom iou prob class score) ... ]
-            high_score_boxes = YOLOv2PostProcessor.filter_boxes(prediction, boxes, FLAGS.confidence_thresh)
+            high_score_boxes, max_score = YOLOv2PostProcessor.filter_boxes(prediction, boxes, FLAGS.confidence_thresh)
             nms_boxes = YOLOv2PostProcessor.apply_nms(high_score_boxes, FLAGS.nms_thresh)
             in_boxes = YOLOv2PostProcessor.resize_boxes(nms_boxes, target_size=input_box_size)
             if save_path is not None:

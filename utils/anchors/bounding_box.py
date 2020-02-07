@@ -53,7 +53,7 @@ class BoundingBox(object):
         :param name: 散点图名称
         :return:
         """
-        col = ['black', 'silver', 'red', 'peru', 'yellow', 'green', 'cyan', 'blue', 'fuchsia', 'pink']
+        col = ['silver', 'red', 'peru', 'yellow', 'green', 'cyan', 'blue', 'fuchsia', 'pink', 'black']
         # 中心点和boxes的 width 和 height 解析
         center_w, center_h = map(np.array, zip(*[(box.w, box.h) for box in centroids]))
         center_colors = col[:len(centroids)]  # 'k'

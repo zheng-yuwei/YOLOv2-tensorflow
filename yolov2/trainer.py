@@ -8,10 +8,14 @@ import logging
 import tensorflow as tf
 from tensorflow import saved_model
 from tensorflow import keras
+import matplotlib.pyplot as plt
 
 from configs import FLAGS
 from yolov2.yolov2_detector import YOLOv2Detector
 from yolov2.yolov2_loss import YOLOv2Loss
+from utils.logger_callback import DetailLossProgbarLogger
+from utils.warmup_reduce_lr import WarmupReduceLROnPlateau
+from utils.board_callback import MyTensorBoard
 
 
 class YOLOv2Trainer(object):
@@ -70,8 +74,8 @@ class YOLOv2Trainer(object):
             optimizer = keras.optimizers.Adam(lr=FLAGS.init_lr, amsgrad=True)  # 用AMSGrad
         elif FLAGS.optimizer == 'radam':
             from utils.radam import RAdam
-            optimizer = RAdam(lr=1e-3)
-        self.loss_function = YOLOv2Loss(FLAGS.head_grid_size, FLAGS.class_num,
+            optimizer = RAdam(lr=FLAGS.init_lr, warmup_coef=0.1)
+        self.loss_function = YOLOv2Loss(FLAGS.batch_size, FLAGS.head_grid_size, FLAGS.class_num,
                                         FLAGS.anchor_boxes, FLAGS.iou_thresh, FLAGS.loss_weights,
                                         rectified_coord_num=FLAGS.rectified_coord_num,
                                         rectified_loss_weight=FLAGS.rectified_loss_weight,
@@ -84,14 +88,22 @@ class YOLOv2Trainer(object):
         self.epoch = FLAGS.epoch
 
         # 设置训练过程中的回调函数
-        tensorboard = keras.callbacks.TensorBoard(log_dir=FLAGS.tensorboard_dir)
+        tensorboard = MyTensorBoard(log_dir=FLAGS.tensorboard_dir)
+        # tensorboard = keras.callbacks.TensorBoard(log_dir=FLAGS.tensorboard_dir)
         cp_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_path, save_weights_only=True,
                                                       verbose=1, period=FLAGS.ckpt_period)
         es_callback = keras.callbacks.EarlyStopping(monitor='loss', min_delta=FLAGS.stop_min_delta,
-                                                    patience=FLAGS.stop_patience, verbose=0, mode='min')
-        lr_callback = keras.callbacks.LearningRateScheduler(FLAGS.lr_func)
-
-        from utils.logger_callback import DetailLossProgbarLogger
+                                                    patience=FLAGS.stop_patience, verbose=1, mode='min')
+        if FLAGS.lr_self_define:
+            lr_callback = keras.callbacks.LearningRateScheduler(FLAGS.lr_func)
+        else:
+            lr_callback = WarmupReduceLROnPlateau(monitor='loss', verbose=1,
+                                                  factor=FLAGS.lr_decay_rate,
+                                                  min_delta=FLAGS.lr_min_delta,
+                                                  patience=FLAGS.lr_patience,
+                                                  min_lr=FLAGS.lr_minimum,
+                                                  warmup=FLAGS.lr_warmup_epoch,
+                                                  warmup_rate=FLAGS.lr_warmup_rate)
         log_callback = DetailLossProgbarLogger()
 
         self.callbacks = [tensorboard, cp_callback, es_callback, lr_callback, log_callback]
@@ -151,6 +163,7 @@ class YOLOv2Trainer(object):
         self.model.save(h5_path, overwrite=True, include_optimizer=False)
         model = keras.models.load_model(h5_path)
         model.summary()
+        logging.info('FLOPs: {}'.format(self.get_flops()))
         # 保存pb
         with keras.backend.get_session() as sess:
             output_name = [out.op.name for out in model.outputs]
@@ -206,3 +219,12 @@ class YOLOv2Trainer(object):
         plt.xlim(0, len(bn_gammas) + 1)
         plt.grid(axis='y')
         plt.show()
+
+    @staticmethod
+    def get_flops():
+        run_meta = tf.RunMetadata()
+        opts = tf.profiler.ProfileOptionBuilder.float_operation()
+        # We use the Keras session graph in the call to the profiler.
+        flops = tf.profiler.profile(graph=keras.backend.get_session().graph,
+                                    run_meta=run_meta, cmd='op', options=opts)
+        return flops.total_float_ops

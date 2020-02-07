@@ -29,6 +29,7 @@ class YOLOv2PostProcessor(object):
             all_score = all_class_prob * all_score
         
         # 保留大于阈值的、归一化的候选框，进行NMS
+        max_score = np.max(all_score)
         high_score_position = np.where(np.reshape(all_score > score_thresh, [-1]))
         left_top_x = np.take(predict_boxes[:, :, :, 0], high_score_position) / width
         left_top_y = np.take(predict_boxes[:, :, :, 1], high_score_position) / height
@@ -41,7 +42,7 @@ class YOLOv2PostProcessor(object):
         # (k, 8), [x0, y0, x1, y1, iou, 概率, 预测类别， 得分=iou*概率]
         boxes = np.transpose(np.concatenate([left_top_x, left_top_y, right_bottom_x, right_bottom_y,
                                              confidence, class_prob, class_indices, high_score], axis=0))
-        return boxes
+        return boxes, max_score
     
     @staticmethod
     def apply_nms(boxes, nms_thresh):

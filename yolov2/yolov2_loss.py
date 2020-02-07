@@ -11,12 +11,13 @@ from yolov2.yolov2_decoder import YOLOv2Decoder
 class YOLOv2Loss(object):
     """ YOLOv2损失函数 """
     
-    def __init__(self, head_grid_size, class_num, anchor_boxes, iou_thresh, loss_weights,
+    def __init__(self, batch_size, head_grid_size, class_num, anchor_boxes, iou_thresh, loss_weights,
                  rectified_coord_num=0, rectified_loss_weight=0.01,
                  is_focal_loss=False, focal_alpha=0.25, focal_gamma=2.0,
                  is_tiou_recall=False):
         """
         YOLO v2 损失函数参数的初始化
+        :param batch_size: 训练batch size
         :param head_grid_size: YOLO v2输出尺度
         :param class_num: 类别数
         :param anchor_boxes: YOLO v2的预定义anchors
@@ -35,12 +36,8 @@ class YOLOv2Loss(object):
         self.class_num = class_num
         self.iou_thresh = iou_thresh
         # 坐标损失项、背景IOU损失项权重
-        self.coord_xy_weight, self.coord_wh_weight, self.noobj_weight, self.obj_weight, self.cls_weight = loss_weights
-        self.coord_xy_weight = tf.constant(self.coord_xy_weight, dtype=tf.float32)
-        self.coord_wh_weight = tf.constant(self.coord_wh_weight, dtype=tf.float32)
-        self.noobj_weight = tf.constant(self.noobj_weight, dtype=tf.float32)
-        self.obj_weight = tf.constant(self.obj_weight, dtype=tf.float32)
-        self.cls_weight = tf.constant(self.cls_weight, dtype=tf.float32)
+        self.coord_xy_weight, self.coord_wh_weight, self.noobj_weight, self.obj_weight, self.cls_weight = \
+            [float(w) for w in loss_weights]
         # bounding box
         self.box_num = len(anchor_boxes)
         self.coord_num = 4
@@ -67,6 +64,9 @@ class YOLOv2Loss(object):
             self.noobj_iou_loss = tf.get_variable('noobj_iou_loss', shape=[], initializer=tf.constant_initializer(0.0))
             self.obj_iou_loss = tf.get_variable('obj_iou_loss', shape=[], initializer=tf.constant_initializer(0.0))
             self.class_loss = tf.get_variable('class_loss', shape=[], initializer=tf.constant_initializer(0.0))
+            self.output_iou = tf.get_variable('output_iou',
+                                              shape=[batch_size, self.height, self.width, self.box_num],
+                                              initializer=tf.constant_initializer(0.0))
     
     def loss(self, targets, predicts):
         """
@@ -110,6 +110,7 @@ class YOLOv2Loss(object):
             self.noobj_iou_loss.assign(yolov2_loss[2]),
             self.obj_iou_loss.assign(yolov2_loss[3]),
             self.class_loss.assign(yolov2_loss[4]),
+            self.output_iou.assign(decode_predicts[:, :, :, :, 4])
         ]
         # 前期矫正的图片数小于预定义的坐标校正图片数，则继续加坐标校正损失
         # [rectified_coord_loss, coord_loss_xy, coord_loss_wh, noobj_iou_loss, obj_iou_loss, class_loss]
@@ -187,14 +188,20 @@ class YOLOv2Loss(object):
         # 计算scale：又box大小决定的权重，小box权重越大
         scale = tf.expand_dims(2 - target[:, 2] * target[:, 3] / (self.output_wh[0] * self.output_wh[1]), axis=-1)
         # log_xy
-        coord_int = tf.floor(target[:, 0:2])
-        coord_target_xy = target[:, 0:2] - coord_int
-        coord_pred_xy = response_pred[:, 0:2] - coord_int
-        coord_loss_xy = - (coord_target_xy * tf.log(coord_pred_xy) + (1 - coord_target_xy) * tf.log(1 - coord_pred_xy))
-        coord_loss_xy = self.coord_xy_weight * tf.reduce_sum(scale * coord_loss_xy)
+        if self.coord_xy_weight > keras.backend.epsilon():
+            coord_int = tf.floor(target[:, 0:2])
+            coord_target_xy = target[:, 0:2] - coord_int
+            coord_pred_xy = response_pred[:, 0:2] - coord_int
+            coord_loss_xy = - (coord_target_xy * tf.log(coord_pred_xy) + (1 - coord_target_xy) * tf.log(1 - coord_pred_xy))
+            coord_loss_xy = self.coord_xy_weight * tf.reduce_sum(scale * coord_loss_xy)
+        else:
+            coord_loss_xy = tf.constant(0.0, dtype=tf.float32)
         # mse_wh
-        coord_loss_wh = tf.reduce_sum(scale * tf.square(tf.log(target[:, 2:4]) - tf.log(response_pred[:, 2:4])))
-        coord_loss_wh = self.coord_wh_weight * coord_loss_wh
+        if self.coord_wh_weight > keras.backend.epsilon():
+            coord_loss_wh = tf.reduce_sum(scale * tf.square(tf.log(target[:, 2:4]) - tf.log(response_pred[:, 2:4])))
+            coord_loss_wh = self.coord_wh_weight * coord_loss_wh
+        else:
+            coord_loss_wh = tf.constant(0.0, dtype=tf.float32)
         # 4.4 计算类别损失：loss(class)
         if self.class_num >= 1:
             targets_class_prob = tf.one_hot(tf.cast(target[:, 4], dtype=tf.int32), depth=self.class_num)

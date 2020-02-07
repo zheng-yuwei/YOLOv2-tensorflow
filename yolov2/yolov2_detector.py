@@ -4,6 +4,7 @@ File yolov2_trainer.py
 @author:ZhengYuwei
 """
 import logging
+import tensorflow as tf
 from tensorflow import keras
 from backbone.resnet18 import ResNet18
 from backbone.resnet18_v2 import ResNet18_v2
@@ -11,22 +12,45 @@ from backbone.resnext import ResNeXt18
 from backbone.mixnet18 import MixNet18
 from backbone.mobilenet_v2 import MobileNetV2
 
+from configs import FLAGS, Backbone
+
+
+class SampleFreeBias(keras.initializers.Initializer):
+    """初始化并生成一个指定维度为预定义常数的tensor，思想来源于sample-free的论文：
+    sigmoid(x) = N_f / (N * C) => x = -log((N*C)/N_f - 1)
+    Is Sampling Heuristics Necessary in Training Deep Object Detectors?
+    (https://arxiv.org/pdf/1909.04868.pdf)
+    """
+
+    def __init__(self, dtype=tf.dtypes.float32, constant=0., anchor_num=5):
+        self.dtype = tf.dtypes.as_dtype(dtype)
+        self.constant = constant
+        self.anchor_num = anchor_num
+
+    def __call__(self, shape, dtype=None, partition_info=None):
+        if dtype is None:
+            dtype = self.dtype
+        new_shape = shape[0] // self.anchor_num
+        biases = list()
+        for c in range(self.anchor_num):
+            biases.extend([tf.zeros(4, dtype), tf.constant(self.constant, dtype, shape=(1,)),
+                           tf.zeros(new_shape - 5, dtype)])
+        return tf.concat(biases, axis=-1)
+
+    def get_config(self):
+        return {"dtype": self.dtype.name}
+
 
 class YOLOv2Detector(object):
     """
     检测器，自定义了YOLOv2的head
     """
-    BACKBONE_RESNET_18 = 'resnet-18'
-    BACKBONE_RESNET_18_V2 = 'resnet-18-v2'
-    BACKBONE_RESNEXT_18 = 'resnext-18'
-    BACKBONE_MIXNET_18 = 'mixnet-18'
-    BACKBONE_MOBILENET_V2 = 'mobilenet-v2'
     BACKBONE_TYPE = {
-        BACKBONE_RESNET_18: ResNet18,
-        BACKBONE_RESNET_18_V2: ResNet18_v2,
-        BACKBONE_RESNEXT_18: ResNeXt18,
-        BACKBONE_MOBILENET_V2: MobileNetV2,
-        BACKBONE_MIXNET_18: MixNet18
+        Backbone.resnet18: ResNet18,
+        Backbone.resnet18_v2: ResNet18_v2,
+        Backbone.resnext18: ResNeXt18,
+        Backbone.mobilenet_v2: MobileNetV2,
+        Backbone.mixnet18: MixNet18
     }
 
     @classmethod
@@ -38,8 +62,12 @@ class YOLOv2Detector(object):
         :param head_name: 检测头的名字
         :return: （N * H * W * grid_shape）矩阵
         """
+        initializer = 'zeros'
+        if FLAGS.is_sample_free:
+            initializer = SampleFreeBias(constant=FLAGS.bias_constant, anchor_num=FLAGS.box_num)
         output = keras.layers.Conv2D(filters=head_channel_num, kernel_size=(1, 1),
                                      kernel_initializer=keras.initializers.RandomNormal(stddev=0.01),
+                                     bias_initializer=initializer,
                                      activation=None, use_bias=True, name=head_name)(net)
         return output
 

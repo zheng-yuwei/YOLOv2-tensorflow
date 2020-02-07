@@ -7,8 +7,8 @@ import os
 import cv2
 
 # 检查标签文件中的图片是否存在且可以打开
-train_set_dir = '/home/data_159/data1/license_plate/plate_recognition/new_plate_images/'
-train_label_path = '/home/data_159/data1/license_plate/plate_recognition/new_plate_lmdb/hechang/multi_label_lmdb/train.txt'
+train_set_dir = './dataset/train'
+train_label_path = './dataset/train.txt'
 lines = list()
 with open(train_label_path, 'r') as file:
     for line in file:
